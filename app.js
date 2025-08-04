@@ -192,6 +192,23 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('');
             document.getElementById('cartTotal').textContent = formatPrice(calculateCartTotal());
         };
+        const populateRestaurantSelect = () => {
+            const select = document.getElementById('dishRestaurantSelect');
+            if (!select) return;
+
+            const selectedValue = select.value;
+            select.innerHTML = '<option value="">اختر مطعم</option>';
+
+            appData.restaurants.forEach(restaurant => {
+                const option = document.createElement('option');
+                option.value = restaurant.id;
+                option.textContent = restaurant.name;
+                select.appendChild(option);
+            });
+
+            select.value = selectedValue;
+        };
+
         const loadInitialData = async () => {
             console.log("Fetching data from Supabase...");
             let { data: restaurants, error } = await supabaseClient.from('restaurants').select(`*, dishes (*)`).order('id');
