@@ -49,6 +49,89 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.appData = appData;
 
+        const attachEventListeners = () => {
+            document.getElementById('customerBtn').addEventListener('click', () => showView('customer'));
+            document.getElementById('ownerBtn').addEventListener('click', () => showView('signIn'));
+            document.getElementById('adminBtn').addEventListener('click', () => showView('signIn'));
+            document.getElementById('showSignUpLink').addEventListener('click', (e) => { e.preventDefault(); showView('signUp'); });
+            document.getElementById('showSignInLink').addEventListener('click', (e) => { e.preventDefault(); showView('signIn'); });
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'danger');
+            });
+
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const view = item.getAttribute('data-view');
+                    if (view) {
+                        showView(view);
+                    }
+                });
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                await supabaseClient.auth.signOut();
+            });
+
+            window.showCheckoutModal = () => {
+                document.getElementById('finalTotal').textContent = formatPrice(calculateCartTotal());
+                showModal('checkoutModal');
+            }
+
+            document.getElementById('checkoutBtn').addEventListener('click', () => {
+                hideModal('cartModal');
+                showCheckoutModal();
+            });
+
+            document.getElementById('closeCheckoutModal').addEventListener('click', () => hideModal('checkoutModal'));
+
+            document.getElementById('paymentMethod').addEventListener('change', (e) => {
+                const proofSection = document.getElementById('paymentProofSection');
+                if (e.target.value === 'electronic') {
+                    proofSection.classList.remove('hidden');
+                } else {
+                    proofSection.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('customerName').value;
+                const phone = document.getElementById('customerPhone').value;
+                const address = document.getElementById('customerAddress').value;
+                const paymentMethod = document.getElementById('paymentMethod').value;
+                // Not handling payment proof for now, as it's a file upload and more complex.
+
+                try {
+                    const { data, error } = await supabaseClient.functions.invoke('create-customer-and-order', {
+                        body: {
+                            name,
+                            phone,
+                            address,
+                            cart: appData.cart,
+                            paymentMethod,
+                            paymentProofUrl: null, // Not handled yet
+                        },
+                    });
+
+                    if (error) throw error;
+
+                    hideModal('checkoutModal');
+                    showModal('successModal');
+                    appData.cart = [];
+                    updateCartCount();
+                    renderCart();
+                } catch (error) {
+                    console.error('Error creating order:', error);
+                    showToast('حدث خطأ أثناء إنشاء الطلب', 'danger');
+                }
+            });
+        };
+
         const formatPrice = (price) => `${price.toLocaleString()} أوقية`;
         const generateStars = (rating) => {
             let stars = '';
@@ -325,89 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if(ownerNav) ownerNav.classList.toggle('hidden', !['admin', 'owner'].includes(role));
             if(adminNav) adminNav.classList.toggle('hidden', role !== 'admin');
-        };
-
-        const attachEventListeners = () => {
-            document.getElementById('customerBtn').addEventListener('click', () => showView('customer'));
-            document.getElementById('ownerBtn').addEventListener('click', () => showView('signIn'));
-            document.getElementById('adminBtn').addEventListener('click', () => showView('signIn'));
-            document.getElementById('showSignUpLink').addEventListener('click', (e) => { e.preventDefault(); showView('signUp'); });
-            document.getElementById('showSignInLink').addEventListener('click', (e) => { e.preventDefault(); showView('signIn'); });
-            document.getElementById('loginForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('loginEmail').value;
-                const password = document.getElementById('loginPassword').value;
-                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-                if (error) showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'danger');
-            });
-
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const view = item.getAttribute('data-view');
-                    if (view) {
-                        showView(view);
-                    }
-                });
-            });
-
-            document.getElementById('logoutBtn').addEventListener('click', async () => {
-                await supabaseClient.auth.signOut();
-            });
-
-            window.showCheckoutModal = () => {
-                document.getElementById('finalTotal').textContent = formatPrice(calculateCartTotal());
-                showModal('checkoutModal');
-            }
-
-            document.getElementById('checkoutBtn').addEventListener('click', () => {
-                hideModal('cartModal');
-                showCheckoutModal();
-            });
-
-            document.getElementById('closeCheckoutModal').addEventListener('click', () => hideModal('checkoutModal'));
-
-            document.getElementById('paymentMethod').addEventListener('change', (e) => {
-                const proofSection = document.getElementById('paymentProofSection');
-                if (e.target.value === 'electronic') {
-                    proofSection.classList.remove('hidden');
-                } else {
-                    proofSection.classList.add('hidden');
-                }
-            });
-
-            document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-
-                const name = document.getElementById('customerName').value;
-                const phone = document.getElementById('customerPhone').value;
-                const address = document.getElementById('customerAddress').value;
-                const paymentMethod = document.getElementById('paymentMethod').value;
-                // Not handling payment proof for now, as it's a file upload and more complex.
-
-                try {
-                    const { data, error } = await supabaseClient.functions.invoke('create-customer-and-order', {
-                        body: {
-                            name,
-                            phone,
-                            address,
-                            cart: appData.cart,
-                            paymentMethod,
-                            paymentProofUrl: null, // Not handled yet
-                        },
-                    });
-
-                    if (error) throw error;
-
-                    hideModal('checkoutModal');
-                    showModal('successModal');
-                    appData.cart = [];
-                    updateCartCount();
-                    renderCart();
-                } catch (error) {
-                    console.error('Error creating order:', error);
-                    showToast('حدث خطأ أثناء إنشاء الطلب', 'danger');
-                }
-            });
         };
 
         updateCartCount();
