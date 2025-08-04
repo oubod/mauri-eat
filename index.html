@@ -1252,8 +1252,8 @@ create policy "Owners and admins can update orders." on orders
             <div class="card-compact rounded-lg p-3">
                 <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-3">
-                        <div class="restaurant-avatar" style="background: ${restaurant.bg_color};">
-                           ${getImageDisplay(restaurant)}
+                        <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                           <img src="${getImageSource(restaurant) || 'https://placehold.co/400x400/e2e8f0/e2e8f0'}" alt="${restaurant.name}" class="w-full h-full object-cover">
                         </div>
                         <div>
                             <h3 class="font-medium text-sm">${restaurant.name}</h3>
@@ -1266,10 +1266,10 @@ create policy "Owners and admins can update orders." on orders
                 <p class="text-xs text-gray-600 mb-3 line-clamp-2">${getCategoryName(restaurant.category)}: ${restaurant.description}</p>
 
                 <div class="flex gap-2">
-                    <button onclick="editRestaurant(${restaurant.id})" class="btn-secondary flex-1 text-xs py-2">
+                    <button onclick="editRestaurant(${restaurant.id})" class="btn btn-secondary flex-1 text-xs py-2">
                         تعديل
                     </button>
-                    <button onclick="deleteRestaurant(${restaurant.id})" class="btn-danger flex-1 text-xs py-2">
+                    <button onclick="deleteRestaurant(${restaurant.id})" class="btn btn-danger flex-1 text-xs py-2">
                         حذف
                     </button>
                 </div>
@@ -1304,24 +1304,24 @@ create policy "Owners and admins can update orders." on orders
             <div class="card-compact rounded-lg p-3">
                 <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-3">
-                        <div class="dish-image-container">
-                            ${getImageDisplay(dish, 'small')}
+                        <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                            <img src="${getImageSource(dish) || 'https://placehold.co/400x400/e2e8f0/e2e8f0'}" alt="${dish.name}" class="w-full h-full object-cover">
                         </div>
                         <div>
                             <h3 class="font-medium text-sm">${dish.name}</h3>
                             <p class="text-xs text-secondary">${formatPrice(dish.price)}</p>
                         </div>
                     </div>
-                    <span class="status-badge bg-secondary text-white">${getCategoryName(dish.category)}</span>
+                    <span class="status-badge bg-blue-100 text-blue-800">${getCategoryName(dish.category)}</span>
                 </div>
 
                 <p class="text-xs text-gray-600 mb-3 line-clamp-2">${dish.description}</p>
 
                 <div class="flex gap-2">
-                    <button onclick="editDish(${restaurantId}, ${dish.id})" class="btn-secondary flex-1 text-xs py-2">
+                    <button onclick="editDish(${restaurantId}, ${dish.id})" class="btn btn-secondary flex-1 text-xs py-2">
                         تعديل
                     </button>
-                    <button onclick="deleteDish(${restaurantId}, ${dish.id})" class="btn-danger flex-1 text-xs py-2">
+                    <button onclick="deleteDish(${restaurantId}, ${dish.id})" class="btn btn-danger flex-1 text-xs py-2">
                         حذف
                     </button>
                 </div>
