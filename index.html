@@ -59,42 +59,6 @@
             border-color: #3b82f6;
         }
         
-        .restaurant-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: white;
-            font-weight: 600;
-        }
-        
-        .restaurant-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-        
-        .dish-image-container {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #f3f4f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .dish-image-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -104,6 +68,7 @@
             border-top: 1px solid #e5e7eb;
             z-index: 50;
             height: 60px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
         }
         
         .nav-item {
@@ -113,21 +78,31 @@
             align-items: center;
             justify-content: center;
             padding: 8px;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             cursor: pointer;
+            color: #6b7280; /* Muted color for inactive items */
+            position: relative;
         }
         
         .nav-item.active {
             color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 3px;
+            background-color: #3b82f6;
+            border-radius: 0 0 4px 4px;
         }
         
         .nav-item:hover {
-            background: rgba(107, 114, 128, 0.1);
-        }
-        
-        .nav-item.active:hover {
-            background: rgba(59, 130, 246, 0.15);
+            background: rgba(107, 114, 128, 0.05);
         }
         
         .badge {
@@ -895,24 +870,21 @@
     function renderRestaurants(restaurants = appData.restaurants) {
         const grid = document.getElementById('restaurantGrid');
         grid.innerHTML = restaurants.map(restaurant => `
-            <div class="card-compact rounded-lg p-3 cursor-pointer" onclick="showRestaurantMenu(${restaurant.id})">
-                <div class="flex items-center gap-3">
-                    <div class="restaurant-avatar" style="background: ${restaurant.bg_color};">
-                        ${getImageDisplay(restaurant)}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-medium text-sm text-gray-900 truncate">${restaurant.name}</h3>
-                        <div class="flex items-center gap-2 mt-1">
-                            <div class="flex items-center gap-1">
-                                ${generateStars(restaurant.rating)}
-                                <span class="text-xs text-gray-600">${restaurant.rating}</span>
-                            </div>
-                            <span class="text-xs text-gray-500">•</span>
-                            <span class="text-xs text-gray-500">${restaurant.delivery_time}</span>
+            <div class="card-compact rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-shadow duration-300" onclick="showRestaurantMenu(${restaurant.id})">
+                <div class="h-32 bg-gray-200">
+                    <img src="${getImageSource(restaurant) || 'https://placehold.co/600x400/e2e8f0/e2e8f0'}" alt="${restaurant.name}" class="w-full h-full object-cover">
+                </div>
+                <div class="p-4">
+                    <h3 class="font-semibold text-lg text-gray-900 truncate">${restaurant.name}</h3>
+                    <div class="flex items-center gap-2 mt-1 text-sm">
+                        <div class="flex items-center gap-1">
+                            ${generateStars(restaurant.rating)}
+                            <span class="text-gray-600">${restaurant.rating}</span>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1 truncate">${restaurant.description}</p>
+                        <span class="text-gray-500">•</span>
+                        <span class="text-gray-500">${restaurant.delivery_time}</span>
                     </div>
-                    <div class="text-xs text-secondary">→</div>
+                    <p class="text-sm text-gray-500 mt-2 truncate">${restaurant.description}</p>
                 </div>
             </div>
         `).join('');
@@ -927,17 +899,17 @@
 
         const container = document.getElementById('popularDishes').querySelector('.grid');
         container.innerHTML = popularDishes.map(dish => `
-            <div class="card-compact rounded-lg p-3">
-                <div class="flex items-center gap-3">
-                    <div class="dish-image-container">
-                        ${getImageDisplay(dish, 'small')}
+            <div class="card-compact rounded-xl overflow-hidden shadow-sm">
+                <div class="flex items-center gap-4 p-3">
+                    <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img src="${getImageSource(dish) || 'https://placehold.co/400x400/e2e8f0/e2e8f0'}" alt="${dish.name}" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-medium text-sm text-gray-900">${dish.name}</h4>
-                        <p class="text-xs text-gray-500 truncate">${dish.description}</p>
+                        <h4 class="font-semibold text-base text-gray-900">${dish.name}</h4>
+                        <p class="text-sm text-gray-500 truncate mt-1">${dish.description}</p>
                         <div class="flex items-center justify-between mt-2">
-                            <span class="font-semibold text-sm text-secondary">${formatPrice(dish.price)}</span>
-                            <button onclick="addToCart(${dish.id})" class="btn-primary text-xs px-3 py-1">
+                            <span class="font-bold text-lg text-secondary">${formatPrice(dish.price)}</span>
+                            <button onclick="addToCart(${dish.id})" class="btn-primary text-sm px-4 py-2 rounded-lg">
                                 إضافة
                             </button>
                         </div>
@@ -949,14 +921,14 @@
 
     function renderMenuItems(restaurant) {
         document.getElementById('restaurantHeader').innerHTML = `
-            <div class="flex items-center gap-3">
-                <div class="restaurant-avatar" style="background: ${restaurant.bg_color};">
-                    ${getImageDisplay(restaurant)}
+            <div class="flex items-center gap-4">
+                <div class="w-24 h-24 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
+                     <img src="${getImageSource(restaurant) || 'https://placehold.co/600x400/e2e8f0/e2e8f0'}" alt="${restaurant.name}" class="w-full h-full object-cover">
                 </div>
                 <div class="flex-1">
-                    <h2 class="font-semibold text-base text-gray-900">${restaurant.name}</h2>
-                    <p class="text-xs text-gray-600 mt-1">${restaurant.description}</p>
-                    <div class="flex items-center gap-3 mt-2 text-xs">
+                    <h2 class="font-bold text-2xl text-gray-900">${restaurant.name}</h2>
+                    <p class="text-sm text-gray-600 mt-1">${restaurant.description}</p>
+                    <div class="flex items-center gap-3 mt-2 text-sm">
                         <div class="flex items-center gap-1">
                             ${generateStars(restaurant.rating)}
                             <span class="text-gray-600">${restaurant.rating}</span>
@@ -968,17 +940,17 @@
         `;
 
         document.getElementById('menuItems').innerHTML = restaurant.menu.map(item => `
-            <div class="card-compact rounded-lg p-3">
-                <div class="flex items-center gap-3">
-                    <div class="dish-image-container">
-                        ${getImageDisplay(item, 'small')}
+            <div class="card-compact rounded-xl overflow-hidden shadow-sm">
+                <div class="flex items-center gap-4 p-3">
+                    <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img src="${getImageSource(item) || 'https://placehold.co/400x400/e2e8f0/e2e8f0'}" alt="${item.name}" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-medium text-sm text-gray-900">${item.name}</h4>
-                        <p class="text-xs text-gray-500 truncate">${item.description}</p>
+                        <h4 class="font-semibold text-base text-gray-900">${item.name}</h4>
+                        <p class="text-sm text-gray-500 truncate mt-1">${item.description}</p>
                         <div class="flex items-center justify-between mt-2">
-                            <span class="font-semibold text-sm text-secondary">${formatPrice(item.price)}</span>
-                            <button onclick="addToCart(${item.id})" class="btn-primary text-xs px-3 py-1">
+                            <span class="font-bold text-lg text-secondary">${formatPrice(item.price)}</span>
+                            <button onclick="addToCart(${item.id})" class="btn-primary text-sm px-4 py-2 rounded-lg">
                                 إضافة للسلة
                             </button>
                         </div>
