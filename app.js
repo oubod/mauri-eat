@@ -44,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
             editingDish: null, selectedRestaurantForDish: null, user: null, profile: null
         };
 
+        window.appData = appData;
+
         const formatPrice = (price) => `${price.toLocaleString()} أوقية`;
         const generateStars = (rating) => {
             let stars = '';
@@ -229,18 +231,80 @@ document.addEventListener('DOMContentLoaded', () => {
             showView('menu');
             renderMenuItems(restaurant);
         };
-        // ...and so on for all other global functions
+        window.addToCart = (itemId) => {
+            let item = null;
+            for (const restaurant of appData.restaurants) {
+                item = restaurant.menu.find(menuItem => menuItem.id === itemId);
+                if (item) break;
+            }
+            if (!item) return;
+            const existingItem = appData.cart.find(cartItem => cartItem.id === itemId);
+            if (existingItem) existingItem.quantity += 1;
+            else appData.cart.push({ ...item, quantity: 1 });
+            updateCartCount();
+            showToast('تم إضافة الطبق للسلة');
+        };
+        window.updateCartItemQuantity = (itemId, newQuantity) => {
+            if (newQuantity <= 0) appData.cart = appData.cart.filter(item => item.id !== itemId);
+            else {
+                const item = appData.cart.find(item => item.id === itemId);
+                if (item) item.quantity = newQuantity;
+            }
+            updateCartCount();
+            renderCart();
+        };
+
+        const handleAuthChange = async (session) => {
+            appData.user = session ? session.user : null;
+            if (appData.user) {
+                let { data, error } = await supabaseClient.from('profiles').select(`role`).eq('id', appData.user.id).single();
+                if (error) {
+                    console.error("Error fetching profile:", error);
+                    appData.profile = null;
+                } else {
+                    appData.profile = data;
+                }
+            } else {
+                appData.profile = null;
+            }
+            updateNavUI(appData.user, appData.profile);
+        };
+
+        const updateNavUI = (user, profile) => {
+            const ownerNav = document.getElementById('ownerNav');
+            const adminNav = document.getElementById('adminNav');
+            if (user) {
+                ownerNav.classList.toggle('hidden', !['admin', 'owner'].includes(profile?.role));
+                adminNav.classList.toggle('hidden', profile?.role !== 'admin');
+            } else {
+                ownerNav.classList.add('hidden');
+                adminNav.classList.add('hidden');
+            }
+        };
 
         updateCartCount();
         const { data: { session } } = await supabaseClient.auth.getSession();
         await handleAuthChange(session);
         supabaseClient.auth.onAuthStateChange((event, session) => handleAuthChange(session));
 
-        // Event Listeners
         document.getElementById('customerBtn').addEventListener('click', () => showView('customer'));
         document.getElementById('ownerBtn').addEventListener('click', () => showView('signIn'));
         document.getElementById('adminBtn').addEventListener('click', () => showView('signIn'));
-        // ... all other event listeners
+        document.getElementById('showSignUpLink').addEventListener('click', (e) => { e.preventDefault(); showView('signUp'); });
+        document.getElementById('showSignInLink').addEventListener('click', (e) => { e.preventDefault(); showView('signIn'); });
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'danger');
+            else {
+                await handleAuthChange(data.session);
+                if (appData.profile?.role === 'admin') showView('admin');
+                else if (appData.profile?.role === 'owner') showView('owner');
+                else showView('customer');
+            }
+        });
     };
 
     initApp();

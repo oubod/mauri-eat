@@ -1,11 +1,32 @@
-<div id="roleSelectionView" class="px-4 py-4 fade-in">
-    <div class="text-center mt-16">
-        <h1 class="text-3xl font-bold mb-2">أهلاً بك في موريتانيا</h1>
-        <p class="text-gray-600 mb-8">اختر دورك للمتابعة</p>
-        <div class="space-y-4">
-            <button id="customerBtn" class="btn btn-primary w-full">زبون</button>
-            <button id="ownerBtn" class="btn btn-secondary w-full">صاحب مطعم</button>
-            <button id="adminBtn" class="btn btn-secondary w-full">مدير</button>
+<div id="roleSelectionView" class="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4 fade-in">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">🍽️ طلبات الطعام</h1>
+        <p class="text-lg text-gray-600">أسهل طريقة لطلب الطعام في موريتانيا</p>
+    </div>
+
+    <div class="w-full max-w-sm">
+        <div class="space-y-5">
+            <button id="customerBtn" class="role-card">
+                <div class="text-5xl">🛍️</div>
+                <div class="text-right">
+                    <h2 class="font-semibold text-xl">زبون</h2>
+                    <p class="text-gray-500">تصفح المطاعم واطلب وجباتك</p>
+                </div>
+            </button>
+            <button id="ownerBtn" class="role-card">
+                <div class="text-5xl">👨‍🍳</div>
+                <div class="text-right">
+                    <h2 class="font-semibold text-xl">صاحب مطعم</h2>
+                    <p class="text-gray-500">إدارة مطعمك وقائمة الطعام</p>
+                </div>
+            </button>
+            <button id="adminBtn" class="role-card">
+                <div class="text-5xl">⚙️</div>
+                <div class="text-right">
+                    <h2 class="font-semibold text-xl">مدير النظام</h2>
+                    <p class="text-gray-500">الإشراف على المنصة بالكامل</p>
+                </div>
+            </button>
         </div>
     </div>
 </div>
