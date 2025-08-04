@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: 'admin-view', container: 'main-container' },
             { name: 'sign-in-view', container: 'main-container' },
             { name: 'sign-up-view', container: 'main-container' },
+            { name: 'profile-view', container: 'main-container' },
             { name: 'bottom-nav', container: 'bottom-nav-container' },
             { name: 'cart-modal', container: 'modals-container' },
             { name: 'checkout-modal', container: 'modals-container' },
@@ -208,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (viewName === 'owner' && !['admin', 'owner'].includes(role)) return showView('customer');
             if (viewName === 'admin' && role !== 'admin') return showView('customer');
             appData.currentView = viewName;
-            ['roleSelectionView', 'customerView', 'menuView', 'ownerView', 'adminView', 'signInView', 'signUpView'].forEach(v => {
+            ['roleSelectionView', 'customerView', 'menuView', 'ownerView', 'adminView', 'signInView', 'signUpView', 'profileView'].forEach(v => {
                 const el = document.getElementById(v);
                 if(el) el.classList.add('hidden');
             });
@@ -219,9 +220,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if(activeView) activeView.classList.remove('hidden');
             const activeNavItem = document.querySelector(`[data-view="${viewName}"]`);
             if(activeNavItem) activeNavItem.classList.add('active');
-            if (viewName === 'customer' && appData.restaurants.length === 0) loadInitialData();
-            else if (viewName === 'owner') renderOwnerRestaurantStatus();
-            else if (viewName === 'admin') renderRestaurantsManagement();
+
+            if (appData.restaurants.length === 0 && viewName !== 'roleSelection' && viewName !== 'signIn' && viewName !== 'signUp') {
+                loadInitialData();
+            } else if (viewName === 'owner') {
+                renderOwnerRestaurantStatus();
+            } else if (viewName === 'admin') {
+                renderRestaurantsManagement();
+            }
         };
         window.showView = showView;
         window.showRestaurantMenu = (id) => {
@@ -264,6 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     appData.profile = data;
                 }
+                if (appData.restaurants.length === 0) {
+                    await loadInitialData();
+                }
             } else {
                 appData.profile = null;
             }
@@ -304,6 +313,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (appData.profile?.role === 'owner') showView('owner');
                 else showView('customer');
             }
+        });
+
+        document.querySelector('[data-view="profile"]').addEventListener('click', () => showView('profile'));
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            showView('roleSelection');
         });
     };
 
