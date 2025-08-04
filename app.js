@@ -315,7 +315,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        document.querySelector('[data-view="profile"]').addEventListener('click', () => showView('profile'));
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const view = item.getAttribute('data-view');
+                if (view) {
+                    showView(view);
+                }
+            });
+        });
+
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             await supabaseClient.auth.signOut();
             showView('roleSelection');
