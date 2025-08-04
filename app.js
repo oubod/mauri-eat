@@ -410,6 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('حدث خطأ أثناء إنشاء الطلب', 'danger');
             }
         });
+
+        showView(appData.currentView);
     };
 
     initApp();
