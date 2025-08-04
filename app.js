@@ -212,13 +212,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const grid = document.getElementById('restaurantGrid');
             if (!grid) return;
             grid.innerHTML = appData.restaurants.map(restaurant => `
-                <div class="card-compact" onclick="window.showRestaurantMenu(${restaurant.id})">
+                <div class="card-compact rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300 ${!restaurant.is_open ? 'grayscale' : ''}" onclick="window.showRestaurantMenu(${restaurant.id})">
+                    <div class="h-32 bg-gray-200 relative">
+                        <img src="${getImageSource(restaurant) || 'https://placehold.co/600x400/e2e8f0/e2e8f0'}" alt="${restaurant.name}" class="w-full h-full object-cover">
+                        ${!restaurant.is_open ? `<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span class="text-white font-bold text-lg">مغلق</span></div>` : ''}
+                    </div>
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-semibold text-lg text-gray-900 truncate">${restaurant.name}</h3>
+                            <span class="status-badge ${restaurant.is_open ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${restaurant.is_open ? 'مفتوح' : 'مغلق'}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1 text-sm">
+                            <div class="flex items-center gap-1">${generateStars(restaurant.rating)}<span class="text-gray-600">${restaurant.rating}</span></div>
+                            <span class="text-gray-500">•</span>
+                            <span class="text-gray-500">${restaurant.delivery_time}</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2 truncate">${restaurant.description}</p>
                     </div>
                 </div>
             `).join('');
         };
 
         const formatPrice = (price) => `${price.toLocaleString()} أوقية`;
+        const generateStars = (rating) => {
+            let stars = '';
+            for (let i = 0; i < 5; i++) stars += `<span class="text-yellow-400">${i < Math.floor(rating) ? '★' : '☆'}</span>`;
+            return stars;
+        };
+        const getImageSource = (item) => item.image_url || item.photo_url || null;
         const showToast = (message, type = 'success') => {
             const toast = document.createElement('div');
             toast.className = `fixed top-16 right-4 ${type === 'danger' ? 'bg-danger' : 'bg-accent'} text-white px-4 py-2 rounded-lg text-sm z-50 fade-in`;
