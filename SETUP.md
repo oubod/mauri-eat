@@ -168,3 +168,13 @@ supabase functions deploy create-customer-and-order --no-verify-jwt
 ```
 
 **Important:** If you are seeing an error like `column restaurants.is_open does not exist`, it's because your `restaurants` table is missing this column. Make sure you have run all the SQL queries in this guide.
+
+## 8. Assigning an Admin Role
+
+To assign an admin role to a user, you need to do it directly in your Supabase database:
+
+1.  Go to your Supabase project and open the **Table Editor**.
+2.  Select the `profiles` table.
+3.  Find the user you want to make an admin and click the **"Edit row"** button.
+4.  In the `role` column, change the value from `customer` to `admin`.
+5.  Click **"Save"**.

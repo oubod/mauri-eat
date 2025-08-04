@@ -823,25 +823,28 @@ create policy "Owners and admins can update orders." on orders
     <!-- Sign In View -->
     <div id="signInView" class="hidden px-4 py-4 fade-in">
         <div class="max-w-md mx-auto mt-8">
-            <h2 class="text-2xl font-bold text-center mb-6">تسجيل الدخول</h2>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginEmail" class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
-                    <input type="email" id="loginEmail" class="input-field w-full" required>
-                </div>
-                <div>
-                    <label for="loginPassword" class="block text-sm font-medium mb-1">كلمة المرور</label>
-                    <input type="password" id="loginPassword" class="input-field w-full" required>
-                </div>
-                <div id="loginError" class="text-danger text-sm hidden"></div>
-                <div class="pt-2">
-                    <button type="submit" class="btn btn-primary w-full">
-                        دخول
-                    </button>
-                </div>
-            </form>
-            <p class="text-center text-sm mt-4">
-                ليس لديك حساب؟ <a href="#" id="showSignUpLink" class="text-primary hover:underline">إنشاء حساب جديد</a>
+            <div class="bg-white p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-center mb-1">مرحباً بعودتك!</h2>
+                <p class="text-center text-gray-500 mb-6">سجل الدخول للمتابعة</p>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="loginEmail" class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
+                        <input type="email" id="loginEmail" class="input-field w-full" required>
+                    </div>
+                    <div>
+                        <label for="loginPassword" class="block text-sm font-medium mb-1">كلمة المرور</label>
+                        <input type="password" id="loginPassword" class="input-field w-full" required>
+                    </div>
+                    <div id="loginError" class="text-danger text-sm hidden"></div>
+                    <div class="pt-2">
+                        <button type="submit" class="btn btn-primary w-full">
+                            دخول
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <p class="text-center text-sm mt-6">
+                ليس لديك حساب؟ <a href="#" id="showSignUpLink" class="text-primary-600 hover:underline font-semibold">إنشاء حساب جديد</a>
             </p>
         </div>
     </div>
@@ -849,25 +852,28 @@ create policy "Owners and admins can update orders." on orders
     <!-- Sign Up View -->
     <div id="signUpView" class="hidden px-4 py-4 fade-in">
         <div class="max-w-md mx-auto mt-8">
-            <h2 class="text-2xl font-bold text-center mb-6">إنشاء حساب جديد</h2>
-            <form id="signUpForm" class="space-y-4">
-                <div>
-                    <label for="signUpEmail" class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
-                    <input type="email" id="signUpEmail" class="input-field w-full" required>
-                </div>
-                <div>
-                    <label for="signUpPassword" class="block text-sm font-medium mb-1">كلمة المرور</label>
-                    <input type="password" id="signUpPassword" class="input-field w-full" required>
-                </div>
-                <div id="signUpError" class="text-danger text-sm hidden"></div>
-                <div class="pt-2">
-                    <button type="submit" class="btn btn-primary w-full">
-                        إنشاء حساب
-                    </button>
-                </div>
-            </form>
-            <p class="text-center text-sm mt-4">
-                لديك حساب بالفعل؟ <a href="#" id="showSignInLink" class="text-primary hover:underline">تسجيل الدخول</a>
+            <div class="bg-white p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-center mb-1">إنشاء حساب جديد</h2>
+                <p class="text-center text-gray-500 mb-6">لنبدأ معاً</p>
+                <form id="signUpForm" class="space-y-4">
+                    <div>
+                        <label for="signUpEmail" class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
+                        <input type="email" id="signUpEmail" class="input-field w-full" required>
+                    </div>
+                    <div>
+                        <label for="signUpPassword" class="block text-sm font-medium mb-1">كلمة المرور</label>
+                        <input type="password" id="signUpPassword" class="input-field w-full" required>
+                    </div>
+                    <div id="signUpError" class="text-danger text-sm hidden"></div>
+                    <div class="pt-2">
+                        <button type="submit" class="btn btn-primary w-full">
+                            إنشاء حساب
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <p class="text-center text-sm mt-6">
+                لديك حساب بالفعل؟ <a href="#" id="showSignInLink" class="text-primary-600 hover:underline font-semibold">تسجيل الدخول</a>
             </p>
         </div>
     </div>
@@ -1790,7 +1796,7 @@ create policy "Owners and admins can update orders." on orders
             `;
             authNavItem.onclick = async () => {
                 await supabaseClient.auth.signOut();
-                showView('customer'); // Go to home view after logout
+                showView('roleSelection'); // Go to role selection view after logout
             };
         } else {
             ownerNav.classList.add('hidden');
