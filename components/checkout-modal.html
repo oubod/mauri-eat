@@ -1,0 +1,52 @@
+<div id="checkoutModal" class="modal-overlay hidden items-center justify-center p-4">
+    <div class="modal-content w-full max-w-lg">
+        <div class="p-4 border-b">
+            <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-base">تأكيد الطلب</h3>
+                <button id="closeCheckoutModal" class="text-gray-500 text-xl">&times;</button>
+            </div>
+        </div>
+
+        <form id="checkoutForm" class="p-4 space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">الاسم *</label>
+                <input type="text" id="customerName" class="input-field w-full" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">الهاتف *</label>
+                <input type="tel" id="customerPhone" class="input-field w-full" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">العنوان *</label>
+                <textarea id="customerAddress" class="input-field w-full" rows="2" required></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">طريقة الدفع *</label>
+                <select id="paymentMethod" class="input-field w-full" required>
+                    <option value="">اختر</option>
+                    <option value="cash">نقدي</option>
+                    <option value="electronic">إلكتروني</option>
+                </select>
+            </div>
+
+            <div id="paymentProofSection" class="hidden">
+                <label class="block text-sm font-medium mb-1">إثبات الدفع *</label>
+                <input type="file" id="paymentProof" class="input-field w-full" accept="image/*">
+            </div>
+
+            <div class="border-t pt-4">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="font-semibold">المجموع:</span>
+                    <span id="finalTotal" class="font-bold text-secondary text-lg">0 أوقية</span>
+                </div>
+
+                <button type="submit" class="btn btn-success w-full">
+                    تأكيد الطلب
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

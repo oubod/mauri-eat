@@ -186,3 +186,13 @@ The `handle_new_user` trigger automatically creates a profile for *new* users. I
     *   Click **"Save"**.
 
 Now, this user will have admin privileges in the application.
+
+## 9. Set up Storage Policies
+
+This policy allows any authenticated user to upload files to the `app-images` bucket.
+
+```sql
+CREATE POLICY "Authenticated users can upload to app-images"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK ( bucket_id = 'app-images' );
+```

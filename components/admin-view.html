@@ -1,0 +1,39 @@
+<div id="adminView" class="hidden px-4 py-4 fade-in">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-lg">الإدارة</h2>
+        <button id="addRestaurantBtn" class="btn btn-success text-xs">
+            + مطعم
+        </button>
+    </div>
+
+    <!-- Admin Tabs -->
+    <div class="mb-4">
+        <div class="flex bg-gray-100 rounded-lg p-1">
+            <button class="admin-tab-btn flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all" data-tab="restaurants">
+                المطاعم
+            </button>
+            <button class="admin-tab-btn flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all" data-tab="dishes">
+                الأطباق
+            </button>
+        </div>
+    </div>
+
+    <!-- Restaurants Management -->
+    <div id="adminRestaurants" class="admin-tab-content">
+        <div id="restaurantsManagement" class="space-y-3">
+            <!-- Restaurant management cards will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Dishes Management -->
+    <div id="adminDishes" class="admin-tab-content hidden">
+        <div class="mb-3">
+            <select id="dishRestaurantSelect" class="input-field w-full text-sm">
+                <option value="">اختر مطعم</option>
+            </select>
+        </div>
+        <div id="dishesManagement" class="space-y-3">
+            <!-- Dish management cards will be loaded here -->
+        </div>
+    </div>
+</div>
