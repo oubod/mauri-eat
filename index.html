@@ -327,8 +327,21 @@
 
     <!-- Main Content -->
     <main class="page-container max-w-md mx-auto">
+        <!-- Role Selection View -->
+        <div id="roleSelectionView" class="px-4 py-4 fade-in">
+            <div class="text-center mt-16">
+                <h1 class="text-3xl font-bold mb-2">أهلاً بك في موريتانيا</h1>
+                <p class="text-gray-600 mb-8">اختر دورك للمتابعة</p>
+                <div class="space-y-4">
+                    <button id="customerBtn" class="btn btn-primary w-full">زبون</button>
+                    <button id="ownerBtn" class="btn btn-secondary w-full">صاحب مطعم</button>
+                    <button id="adminBtn" class="btn btn-secondary w-full">مدير</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Customer View -->
-        <div id="customerView" class="px-4 py-4 fade-in">
+        <div id="customerView" class="hidden px-4 py-4 fade-in">
             <!-- Search -->
             <div class="mb-4">
                 <input 
@@ -1442,6 +1455,7 @@ create policy "Owners and admins can update orders." on orders
     // Navigation Functions
     function showView(viewName) {
         const role = appData.profile?.role;
+        const bottomNav = document.querySelector('.bottom-nav');
 
         // Auth guard
         if ((viewName === 'owner' || viewName === 'admin') && !appData.user) {
@@ -1461,11 +1475,17 @@ create policy "Owners and admins can update orders." on orders
 
         appData.currentView = viewName;
 
-        const views = ['customerView', 'menuView', 'ownerView', 'adminView', 'signInView', 'signUpView'];
+        const views = ['roleSelectionView', 'customerView', 'menuView', 'ownerView', 'adminView', 'signInView', 'signUpView'];
         views.forEach(view => {
             const el = document.getElementById(view);
             if(el) el.classList.add('hidden');
         });
+
+        if (['roleSelection', 'signIn', 'signUp'].includes(viewName)) {
+            bottomNav.classList.add('hidden');
+        } else {
+            bottomNav.classList.remove('hidden');
+        }
 
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
@@ -1855,6 +1875,17 @@ create policy "Owners and admins can update orders." on orders
             }
         });
 
+        // Role selection
+        document.getElementById('customerBtn').addEventListener('click', () => {
+            showView('customer');
+        });
+        document.getElementById('ownerBtn').addEventListener('click', () => {
+            showView('signIn');
+        });
+        document.getElementById('adminBtn').addEventListener('click', () => {
+            showView('signIn');
+        });
+
         // Auth view toggling
         document.getElementById('showSignUpLink').addEventListener('click', (e) => {
             e.preventDefault();
@@ -1862,7 +1893,7 @@ create policy "Owners and admins can update orders." on orders
         });
         document.getElementById('showSignInLink').addEventListener('click', (e) => {
             e.preventDefault();
-            showView('signInView');
+            showView('signIn');
         });
 
         // Bottom navigation
@@ -2126,6 +2157,10 @@ create policy "Owners and admins can update orders." on orders
         document.getElementById('checkoutForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            const saveBtn = this.querySelector('button[type="submit"]');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'جاري إرسال الطلب...';
+
             const paymentProofFile = document.getElementById('paymentProof').files[0];
             let paymentProofUrl = null;
 
@@ -2135,25 +2170,30 @@ create policy "Owners and admins can update orders." on orders
                 if (uploadError) {
                     console.error('Error uploading payment proof:', uploadError);
                     showToast('خطأ في رفع إثبات الدفع', 'danger');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'تأكيد الطلب';
                     return;
                 }
                 const { data: urlData } = supabaseClient.storage.from('app-images').getPublicUrl(filePath);
                 paymentProofUrl = urlData.publicUrl;
             }
 
-            const itemsForDb = appData.cart.map(item => ({ dish_id: item.id, quantity: item.quantity }));
+            const { data, error } = await supabaseClient.functions.invoke('create-customer-and-order', {
+                body: {
+                    name: document.getElementById('customerName').value,
+                    phone: document.getElementById('customerPhone').value,
+                    address: document.getElementById('customerAddress').value,
+                    cart: appData.cart,
+                    paymentMethod: document.getElementById('paymentMethod').value,
+                    paymentProofUrl: paymentProofUrl
+                }
+            })
 
-            const { error: rpcError } = await supabaseClient.rpc('create_order', {
-                customer_name: document.getElementById('customerName').value,
-                customer_phone: document.getElementById('customerPhone').value,
-                address: document.getElementById('customerAddress').value,
-                payment_method: document.getElementById('paymentMethod').value,
-                items: itemsForDb,
-                payment_proof_url: paymentProofUrl
-            });
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'تأكيد الطلب';
 
-            if (rpcError) {
-                console.error('Error creating order:', rpcError);
+            if (error) {
+                console.error('Error creating order:', error);
                 showToast('حدث خطأ أثناء إرسال الطلب', 'danger');
                 return;
             }

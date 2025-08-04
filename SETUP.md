@@ -172,3 +172,11 @@ alter table restaurant_owners enable row level security;
 create policy "Admin can do anything." on restaurant_owners
     for all using ( (select profiles.role from profiles where profiles.id = auth.uid()) = 'admin' );
 ```
+
+## 6. Deploy Edge Function
+
+You need to deploy the `create-customer-and-order` edge function to your Supabase project. You can do this using the Supabase CLI:
+
+```bash
+supabase functions deploy create-customer-and-order --no-verify-jwt
+```
