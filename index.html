@@ -1498,7 +1498,9 @@ create policy "Owners and admins can update orders." on orders
         if(activeNavItem) activeNavItem.classList.add('active');
 
         // Load data for view if needed
-        if (viewName === 'owner') {
+        if (viewName === 'customer' && appData.restaurants.length === 0) {
+            loadInitialData();
+        } else if (viewName === 'owner') {
             renderOwnerRestaurantStatus();
             renderOrders();
         } else if (viewName === 'admin') {
@@ -1805,7 +1807,6 @@ create policy "Owners and admins can update orders." on orders
 
     // --- MAIN ---
     document.addEventListener('DOMContentLoaded', async function() {
-        loadInitialData();
         updateCartCount();
 
         // Auth state management
