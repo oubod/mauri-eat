@@ -134,7 +134,8 @@
         .header-compact {
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
-            padding: 12px 0;
+            padding: 16px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
         
         .search-compact {
@@ -254,6 +255,7 @@
         .input-field:focus {
             outline: none;
             border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
         
         .status-badge {
@@ -264,11 +266,11 @@
         }
         
         .fade-in {
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.5s ease-in-out;
         }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0.5; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
@@ -298,9 +300,9 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-light text-dark">
     <!-- Header -->
-    <header class="header-compact sticky top-0 z-40">
+    <header class="header-compact sticky top-0 z-40 bg-white">
         <div class="max-w-md mx-auto px-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -389,9 +391,16 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-semibold text-lg">لوحة المطعم</h2>
             </div>
+
+            <div id="ownerRestaurantStatus" class="mb-6">
+                <!-- Status toggle will be rendered here -->
+            </div>
             
-            <div id="ordersContainer" class="space-y-3">
-                <!-- Orders will be displayed here -->
+            <div>
+                <h3 class="font-semibold text-base mb-3">الطلبات الواردة</h3>
+                <div id="ordersContainer" class="space-y-3">
+                    <!-- Orders will be displayed here -->
+                </div>
             </div>
         </div>
 
@@ -990,6 +999,7 @@ create policy "Owners and admins can update orders." on orders
                 rating,
                 delivery_time,
                 category,
+                is_open,
                 dishes (*)
             `);
 
@@ -1013,12 +1023,16 @@ create policy "Owners and admins can update orders." on orders
     function renderRestaurants(restaurants = appData.restaurants) {
         const grid = document.getElementById('restaurantGrid');
         grid.innerHTML = restaurants.map(restaurant => `
-            <div class="card-compact rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-shadow duration-300" onclick="showRestaurantMenu(${restaurant.id})">
-                <div class="h-32 bg-gray-200">
+            <div class="card-compact rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300 ${!restaurant.is_open ? 'grayscale' : ''}" onclick="showRestaurantMenu(${restaurant.id})">
+                <div class="h-32 bg-gray-200 relative">
                     <img src="${getImageSource(restaurant) || 'https://placehold.co/600x400/e2e8f0/e2e8f0'}" alt="${restaurant.name}" class="w-full h-full object-cover">
+                    ${!restaurant.is_open ? `<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span class="text-white font-bold text-lg">مغلق</span></div>` : ''}
                 </div>
                 <div class="p-4">
-                    <h3 class="font-semibold text-lg text-gray-900 truncate">${restaurant.name}</h3>
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-semibold text-lg text-gray-900 truncate">${restaurant.name}</h3>
+                        <span class="status-badge ${restaurant.is_open ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${restaurant.is_open ? 'مفتوح' : 'مغلق'}</span>
+                    </div>
                     <div class="flex items-center gap-2 mt-1 text-sm">
                         <div class="flex items-center gap-1">
                             ${generateStars(restaurant.rating)}
@@ -1233,10 +1247,10 @@ create policy "Owners and admins can update orders." on orders
                             <p class="text-xs text-gray-500">${restaurant.delivery_time}</p>
                         </div>
                     </div>
-                    <span class="status-badge bg-secondary text-white">${getCategoryName(restaurant.category)}</span>
+                    <span class="status-badge ${restaurant.is_open ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${restaurant.is_open ? 'مفتوح' : 'مغلق'}</span>
                 </div>
 
-                <p class="text-xs text-gray-600 mb-3 line-clamp-2">${restaurant.description}</p>
+                <p class="text-xs text-gray-600 mb-3 line-clamp-2">${getCategoryName(restaurant.category)}: ${restaurant.description}</p>
 
                 <div class="flex gap-2">
                     <button onclick="editRestaurant(${restaurant.id})" class="btn-secondary flex-1 text-xs py-2">
@@ -1364,6 +1378,67 @@ create policy "Owners and admins can update orders." on orders
         return statuses.indexOf(status);
     }
 
+    async function renderOwnerRestaurantStatus() {
+        // First, get the restaurants owned by the current user
+        const { data: ownedRestaurants, error: fetchError } = await supabaseClient
+            .from('restaurant_owners')
+            .select('restaurant_id')
+            .eq('user_id', appData.user.id);
+
+        if (fetchError || !ownedRestaurants || ownedRestaurants.length === 0) {
+            console.error("Could not fetch owner's restaurants", fetchError);
+            document.getElementById('ownerRestaurantStatus').innerHTML = '';
+            return;
+        }
+
+        const restaurantId = ownedRestaurants[0].restaurant_id; // Assuming one restaurant per owner for now
+        const restaurant = appData.restaurants.find(r => r.id === restaurantId);
+
+        if (!restaurant) return;
+
+        const container = document.getElementById('ownerRestaurantStatus');
+        container.innerHTML = `
+            <div class="card-compact rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold text-lg">${restaurant.name}</h3>
+                        <p class="text-sm text-gray-500">حالة المطعم الحالية</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold ${restaurant.is_open ? 'text-green-600' : 'text-red-600'}">${restaurant.is_open ? 'مفتوح' : 'مغلق'}</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${restaurant.is_open ? 'checked' : ''} class="sr-only peer" onchange="toggleRestaurantStatus(${restaurant.id}, this.checked)">
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function toggleRestaurantStatus(restaurantId, newStatus) {
+        const { error } = await supabaseClient
+            .from('restaurants')
+            .update({ is_open: newStatus })
+            .eq('id', restaurantId);
+
+        if (error) {
+            console.error("Error updating restaurant status:", error);
+            showToast('خطأ في تحديث حالة المطعم', 'danger');
+            return;
+        }
+
+        // Update local data and re-render relevant parts
+        const restaurant = appData.restaurants.find(r => r.id === restaurantId);
+        if (restaurant) {
+            restaurant.is_open = newStatus;
+        }
+
+        showToast(`تم تحديث حالة المطعم بنجاح`);
+        renderOwnerRestaurantStatus(); // Re-render the toggle
+        renderRestaurants(); // Re-render the customer list to reflect changes
+    }
+
     // Navigation Functions
     function showView(viewName) {
         const role = appData.profile?.role;
@@ -1404,6 +1479,7 @@ create policy "Owners and admins can update orders." on orders
 
         // Load data for view if needed
         if (viewName === 'owner') {
+            renderOwnerRestaurantStatus();
             renderOrders();
         } else if (viewName === 'admin') {
             renderRestaurantsManagement();
