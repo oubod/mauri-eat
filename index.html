@@ -1850,15 +1850,26 @@ create policy "Owners and admins can update orders." on orders
             const password = document.getElementById('loginPassword').value;
             const loginError = document.getElementById('loginError');
 
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { data: loginData, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
             if (error) {
                 loginError.textContent = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
                 loginError.classList.remove('hidden');
             } else {
                 loginError.classList.add('hidden');
-                showView('customer');
                 document.getElementById('loginForm').reset();
+
+                // Manually trigger the auth change handler to update the profile
+                await handleAuthChange(loginData.session);
+
+                // Navigate to the correct view based on role
+                if (appData.profile?.role === 'admin') {
+                    showView('admin');
+                } else if (appData.profile?.role === 'owner') {
+                    showView('owner');
+                } else {
+                    showView('customer');
+                }
             }
         });
 

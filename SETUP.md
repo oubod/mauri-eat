@@ -171,10 +171,18 @@ supabase functions deploy create-customer-and-order --no-verify-jwt
 
 ## 8. Assigning an Admin Role
 
-To assign an admin role to a user, you need to do it directly in your Supabase database:
+The `handle_new_user` trigger automatically creates a profile for *new* users. If you have an existing user that you want to make an admin, you'll need to manually create a profile for them first.
 
-1.  Go to your Supabase project and open the **Table Editor**.
-2.  Select the `profiles` table.
-3.  Find the user you want to make an admin and click the **"Edit row"** button.
-4.  In the `role` column, change the value from `customer` to `admin`.
-5.  Click **"Save"**.
+1.  **Find the User's ID:**
+    *   In your Supabase dashboard, go to the **Table Editor**.
+    *   In the `auth` schema, select the `users` table.
+    *   Find the user you want to make an admin and copy their `id`.
+
+2.  **Create a Profile:**
+    *   Go back to the `public` schema and select the `profiles` table.
+    *   Click **"Insert row"**.
+    *   In the `id` column, paste the user `id` you just copied.
+    *   In the `role` column, type `admin`.
+    *   Click **"Save"**.
+
+Now, this user will have admin privileges in the application.
