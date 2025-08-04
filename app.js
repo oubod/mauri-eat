@@ -221,24 +221,27 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const showView = (viewName) => {
             const role = appData.profile?.role;
-            const bottomNav = document.querySelector('.bottom-nav');
+
             if ((viewName === 'owner' || viewName === 'admin') && !appData.user) return showView('signIn');
             if (viewName === 'owner' && !['admin', 'owner'].includes(role)) return showView('customer');
             if (viewName === 'admin' && role !== 'admin') return showView('customer');
+
             appData.currentView = viewName;
             ['roleSelectionView', 'customerView', 'menuView', 'ownerView', 'adminView', 'signInView', 'signUpView', 'profileView'].forEach(v => {
                 const el = document.getElementById(v);
                 if(el) el.classList.add('hidden');
             });
-            if (['roleSelection', 'signIn', 'signUp'].includes(viewName)) bottomNav.classList.add('hidden');
-            else bottomNav.classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+
             const activeView = document.getElementById(`${viewName}View`);
             if(activeView) activeView.classList.remove('hidden');
+
+            updateNavUI(appData.user, appData.profile);
+
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             const activeNavItem = document.querySelector(`[data-view="${viewName}"]`);
             if(activeNavItem) activeNavItem.classList.add('active');
 
-            if (appData.restaurants.length === 0 && viewName !== 'roleSelection' && viewName !== 'signIn' && viewName !== 'signUp') {
+            if (appData.restaurants.length === 0 && !['roleSelection', 'signIn', 'signUp'].includes(viewName)) {
                 loadInitialData();
             } else if (viewName === 'owner') {
                 renderOwnerRestaurantStatus();
@@ -280,32 +283,46 @@ document.addEventListener('DOMContentLoaded', () => {
         const handleAuthChange = async (session) => {
             appData.user = session ? session.user : null;
             if (appData.user) {
-                let { data, error } = await supabaseClient.from('profiles').select(`role`).eq('id', appData.user.id).single();
+                let { data: profile, error } = await supabaseClient.from('profiles').select(`role`).eq('id', appData.user.id).single();
                 if (error) {
                     console.error("Error fetching profile:", error);
                     appData.profile = null;
                 } else {
-                    appData.profile = data;
+                    appData.profile = profile;
                 }
-                if (appData.restaurants.length === 0) {
+
+                if (appData.profile && ['roleSelection', 'signIn', 'signUp'].includes(appData.currentView)) {
+                    if (appData.profile.role === 'admin') showView('admin');
+                    else if (appData.profile.role === 'owner') showView('owner');
+                    else showView('customer');
+                }
+
+                if (appData.restaurants.length === 0 && !['roleSelection', 'signIn', 'signUp'].includes(appData.currentView)) {
                     await loadInitialData();
                 }
             } else {
                 appData.profile = null;
+                if (['owner', 'admin', 'profile'].includes(appData.currentView)) {
+                    showView('roleSelection');
+                }
             }
             updateNavUI(appData.user, appData.profile);
         };
 
         const updateNavUI = (user, profile) => {
+            const bottomNav = document.querySelector('.bottom-nav');
             const ownerNav = document.getElementById('ownerNav');
             const adminNav = document.getElementById('adminNav');
-            if (user) {
-                ownerNav.classList.toggle('hidden', !['admin', 'owner'].includes(profile?.role));
-                adminNav.classList.toggle('hidden', profile?.role !== 'admin');
+            const role = profile?.role;
+
+            if (!user || !role || role === 'customer') {
+                bottomNav.classList.add('hidden');
             } else {
-                ownerNav.classList.add('hidden');
-                adminNav.classList.add('hidden');
+                bottomNav.classList.remove('hidden');
             }
+
+            if(ownerNav) ownerNav.classList.toggle('hidden', !['admin', 'owner'].includes(role));
+            if(adminNav) adminNav.classList.toggle('hidden', role !== 'admin');
         };
 
         updateCartCount();
@@ -322,14 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'danger');
-            else {
-                await handleAuthChange(data.session);
-                if (appData.profile?.role === 'admin') showView('admin');
-                else if (appData.profile?.role === 'owner') showView('owner');
-                else showView('customer');
-            }
         });
 
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -343,7 +354,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             await supabaseClient.auth.signOut();
-            showView('roleSelection');
+        });
+
+        window.showCheckoutModal = () => {
+            document.getElementById('finalTotal').textContent = formatPrice(calculateCartTotal());
+            showModal('checkoutModal');
+        }
+
+        document.getElementById('checkoutBtn').addEventListener('click', () => {
+            hideModal('cartModal');
+            showCheckoutModal();
+        });
+
+        document.getElementById('closeCheckoutModal').addEventListener('click', () => hideModal('checkoutModal'));
+
+        document.getElementById('paymentMethod').addEventListener('change', (e) => {
+            const proofSection = document.getElementById('paymentProofSection');
+            if (e.target.value === 'electronic') {
+                proofSection.classList.remove('hidden');
+            } else {
+                proofSection.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('customerName').value;
+            const phone = document.getElementById('customerPhone').value;
+            const address = document.getElementById('customerAddress').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            // Not handling payment proof for now, as it's a file upload and more complex.
+
+            try {
+                const { data, error } = await supabaseClient.functions.invoke('create-customer-and-order', {
+                    body: {
+                        name,
+                        phone,
+                        address,
+                        cart: appData.cart,
+                        paymentMethod,
+                        paymentProofUrl: null, // Not handled yet
+                    },
+                });
+
+                if (error) throw error;
+
+                hideModal('checkoutModal');
+                showModal('successModal');
+                appData.cart = [];
+                updateCartCount();
+                renderCart();
+            } catch (error) {
+                console.error('Error creating order:', error);
+                showToast('حدث خطأ أثناء إنشاء الطلب', 'danger');
+            }
         });
     };
 
