@@ -11,34 +11,40 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#1f2937',
-                        secondary: '#3b82f6',
-                        accent: '#10b981',
+                        primary: {
+                            DEFAULT: '#3b82f6',
+                            '50': '#eff6ff',
+                            '100': '#dbeafe',
+                            '200': '#bfdbfe',
+                            '300': '#93c5fd',
+                            '400': '#60a5fa',
+                            '500': '#3b82f6',
+                            '600': '#2563eb',
+                            '700': '#1d4ed8',
+                            '800': '#1e40af',
+                            '900': '#1e3a8a',
+                        },
+                        secondary: '#10b981',
+                        accent: '#f59e0b',
                         danger: '#ef4444',
                         warning: '#f59e0b',
-                        dark: '#0f172a',
-                        light: '#f8fafc'
+                        dark: '#111827',
+                        light: '#f9fafb'
                     },
                     fontFamily: {
-                        arabic: ['Noto Sans Arabic', 'Arial', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                        arabic: ['Inter', 'sans-serif'],
                     },
-                    fontSize: {
-                        'xs': '0.75rem',
-                        'sm': '0.875rem',
-                        'base': '1rem',
-                        'lg': '1.125rem',
-                        'xl': '1.25rem',
-                        '2xl': '1.5rem',
-                        '3xl': '1.875rem',
-                    }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: 'Noto Sans Arabic', Arial, sans-serif;
+            font-family: 'Inter', Arial, sans-serif;
         }
         
         .glass-effect {
@@ -177,18 +183,26 @@
             overflow-y: auto;
         }
         
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            transform: scale(1);
+        }
+        .btn:hover {
+            transform: scale(1.03);
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
         .btn-primary {
             background: #3b82f6;
             color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            cursor: pointer;
         }
-        
         .btn-primary:hover {
             background: #2563eb;
         }
@@ -385,7 +399,7 @@
         <div id="adminView" class="hidden px-4 py-4 fade-in">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-semibold text-lg">الإدارة</h2>
-                <button id="addRestaurantBtn" class="btn-success text-xs">
+                <button id="addRestaurantBtn" class="btn btn-success text-xs">
                     + مطعم
                 </button>
             </div>
@@ -465,7 +479,7 @@
                     <span class="font-semibold text-sm">الإجمالي:</span>
                     <span id="cartTotal" class="font-bold text-secondary">0 أوقية</span>
                 </div>
-                <button id="checkoutBtn" class="btn-primary w-full py-3">
+                <button id="checkoutBtn" class="btn btn-primary w-full">
                     إتمام الطلب
                 </button>
             </div>
@@ -518,7 +532,7 @@
                         <span id="finalTotal" class="font-bold text-secondary text-lg">0 أوقية</span>
                     </div>
                     
-                    <button type="submit" class="btn-success w-full py-3">
+                    <button type="submit" class="btn btn-success w-full">
                         تأكيد الطلب
                     </button>
                 </div>
@@ -532,9 +546,113 @@
             <div class="text-4xl mb-3">✅</div>
             <h3 class="font-semibold text-base mb-2">تم إرسال الطلب!</h3>
             <p class="text-sm text-gray-600 mb-4">سيتم التواصل معكم قريباً</p>
-            <button id="closeSuccessModal" class="btn-primary px-6">
+            <button id="closeSuccessModal" class="btn btn-primary">
                 حسناً
             </button>
+
+## Supabase Setup Guide
+
+### 1. Create `profiles` table
+
+Create a table to store user profiles and roles. This table will have a one-to-one relationship with the `auth.users` table.
+
+```sql
+-- Create a table for public profiles
+create table profiles (
+  id uuid references auth.users not null primary key,
+  updated_at timestamp with time zone,
+  username text unique,
+  full_name text,
+  avatar_url text,
+  website text,
+  role text default 'customer'::text,
+
+  constraint username_length check (char_length(username) >= 3)
+);
+
+-- Set up Row Level Security (RLS)
+-- See https://supabase.com/docs/guides/auth/row-level-security for more details.
+alter table profiles
+  enable row level security;
+
+create policy "Public profiles are viewable by everyone." on profiles
+  for select using (true);
+
+create policy "Users can insert their own profile." on profiles
+  for insert with check (auth.uid() = id);
+
+create policy "Users can update own profile." on profiles
+  for update using (auth.uid() = id);
+
+-- This trigger automatically creates a profile for new users.
+-- See https://supabase.com/docs/guides/auth/managing-user-data#using-triggers for more details.
+create function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, full_name, avatar_url, role)
+  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url', 'customer');
+  return new;
+end;
+$$ language plpgsql security definer;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+```
+
+### 2. Set up RLS policies for `restaurants` table
+
+```sql
+-- Enable RLS
+alter table restaurants enable row level security;
+
+-- Allow public read access
+create policy "Restaurants are viewable by everyone." on restaurants
+  for select using (true);
+
+-- Allow admin to insert/update/delete
+create policy "Admin can do anything." on restaurants
+  for all using ( (select profiles.role from profiles where profiles.id = auth.uid()) = 'admin' );
+
+```
+
+### 3. Set up RLS policies for `dishes` table
+
+```sql
+-- Enable RLS
+alter table dishes enable row level security;
+
+-- Allow public read access
+create policy "Dishes are viewable by everyone." on dishes
+  for select using (true);
+
+-- Allow admin to insert/update/delete
+create policy "Admin can do anything." on dishes
+  for all using ( (select profiles.role from profiles where profiles.id = auth.uid()) = 'admin' );
+```
+
+### 4. Set up RLS policies for `orders` table
+
+```sql
+-- Enable RLS
+alter table orders enable row level security;
+
+-- Allow users to view their own orders
+create policy "Users can view their own orders." on orders
+  for select using ( auth.uid() = customer_id ); -- Assuming you add a customer_id to the orders table linking to auth.users
+
+-- Allow owners and admins to view all orders
+create policy "Owners and admins can view all orders." on orders
+  for select using ( (select profiles.role from profiles where profiles.id = auth.uid()) in ('admin', 'owner') );
+
+-- Allow authenticated users to create orders
+create policy "Authenticated users can create orders." on orders
+  for insert with check ( auth.role() = 'authenticated' );
+
+-- Allow owners and admins to update order status
+create policy "Owners and admins can update orders." on orders
+  for update using ( (select profiles.role from profiles where profiles.id = auth.uid()) in ('admin', 'owner') );
+
+```
         </div>
     </div>
 
@@ -608,8 +726,8 @@
                 </div>
                 
                 <div class="flex gap-3">
-                    <button type="submit" class="btn-success flex-1">حفظ</button>
-                    <button type="button" id="cancelRestaurantForm" class="btn-secondary flex-1">إلغاء</button>
+                    <button type="submit" class="btn btn-success flex-1">حفظ</button>
+                    <button type="button" id="cancelRestaurantForm" class="btn btn-secondary flex-1">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -673,23 +791,18 @@
                 </div>
                 
                 <div class="flex gap-3">
-                    <button type="submit" class="btn-success flex-1">حفظ</button>
-                    <button type="button" id="cancelDishForm" class="btn-secondary flex-1">إلغاء</button>
+                    <button type="submit" class="btn btn-success flex-1">حفظ</button>
+                    <button type="button" id="cancelDishForm" class="btn btn-secondary flex-1">إلغاء</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal-overlay hidden items-center justify-center p-4">
-        <div class="modal-content w-full max-w-sm">
-            <div class="p-4 border-b">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-semibold text-base">تسجيل الدخول</h3>
-                    <button id="closeLoginModal" class="text-gray-500 text-xl">&times;</button>
-                </div>
-            </div>
-            <form id="loginForm" class="p-4 space-y-4">
+    <!-- Sign In View -->
+    <div id="signInView" class="hidden px-4 py-4 fade-in">
+        <div class="max-w-md mx-auto mt-8">
+            <h2 class="text-2xl font-bold text-center mb-6">تسجيل الدخول</h2>
+            <form id="loginForm" class="space-y-4">
                 <div>
                     <label for="loginEmail" class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
                     <input type="email" id="loginEmail" class="input-field w-full" required>
@@ -700,11 +813,40 @@
                 </div>
                 <div id="loginError" class="text-danger text-sm hidden"></div>
                 <div class="pt-2">
-                    <button type="submit" class="btn-primary w-full py-2">
+                    <button type="submit" class="btn btn-primary w-full">
                         دخول
                     </button>
                 </div>
             </form>
+            <p class="text-center text-sm mt-4">
+                ليس لديك حساب؟ <a href="#" id="showSignUpLink" class="text-primary hover:underline">إنشاء حساب جديد</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Sign Up View -->
+    <div id="signUpView" class="hidden px-4 py-4 fade-in">
+        <div class="max-w-md mx-auto mt-8">
+            <h2 class="text-2xl font-bold text-center mb-6">إنشاء حساب جديد</h2>
+            <form id="signUpForm" class="space-y-4">
+                <div>
+                    <label for="signUpEmail" class="block text-sm font-medium mb-1">البريد الإلكتروني</label>
+                    <input type="email" id="signUpEmail" class="input-field w-full" required>
+                </div>
+                <div>
+                    <label for="signUpPassword" class="block text-sm font-medium mb-1">كلمة المرور</label>
+                    <input type="password" id="signUpPassword" class="input-field w-full" required>
+                </div>
+                <div id="signUpError" class="text-danger text-sm hidden"></div>
+                <div class="pt-2">
+                    <button type="submit" class="btn btn-primary w-full">
+                        إنشاء حساب
+                    </button>
+                </div>
+            </form>
+            <p class="text-center text-sm mt-4">
+                لديك حساب بالفعل؟ <a href="#" id="showSignInLink" class="text-primary hover:underline">تسجيل الدخول</a>
+            </p>
         </div>
     </div>
 
@@ -715,8 +857,8 @@
             <h3 class="font-semibold text-base mb-2">تأكيد الحذف</h3>
             <p id="deleteMessage" class="text-sm text-gray-600 mb-4">هل أنت متأكد؟</p>
             <div class="flex gap-3">
-                <button id="confirmDelete" class="btn-danger flex-1">حذف</button>
-                <button id="cancelDelete" class="btn-secondary flex-1">إلغاء</button>
+                <button id="confirmDelete" class="btn btn-danger flex-1">حذف</button>
+                <button id="cancelDelete" class="btn btn-secondary flex-1">إلغاء</button>
             </div>
         </div>
     </div>
@@ -741,7 +883,8 @@
         editingRestaurant: null,
         editingDish: null,
         selectedRestaurantForDish: null,
-        user: null
+        user: null,
+        profile: null
     };
 
     // Helper Functions
@@ -909,7 +1052,7 @@
                         <p class="text-sm text-gray-500 truncate mt-1">${dish.description}</p>
                         <div class="flex items-center justify-between mt-2">
                             <span class="font-bold text-lg text-secondary">${formatPrice(dish.price)}</span>
-                            <button onclick="addToCart(${dish.id})" class="btn-primary text-sm px-4 py-2 rounded-lg">
+                            <button onclick="addToCart(${dish.id})" class="btn btn-primary text-sm">
                                 إضافة
                             </button>
                         </div>
@@ -950,7 +1093,7 @@
                         <p class="text-sm text-gray-500 truncate mt-1">${item.description}</p>
                         <div class="flex items-center justify-between mt-2">
                             <span class="font-bold text-lg text-secondary">${formatPrice(item.price)}</span>
-                            <button onclick="addToCart(${item.id})" class="btn-primary text-sm px-4 py-2 rounded-lg">
+                            <button onclick="addToCart(${item.id})" class="btn btn-primary text-sm">
                                 إضافة للسلة
                             </button>
                         </div>
@@ -1223,19 +1366,31 @@
 
     // Navigation Functions
     function showView(viewName) {
+        const role = appData.profile?.role;
+
         // Auth guard
         if ((viewName === 'owner' || viewName === 'admin') && !appData.user) {
             showToast('الرجاء تسجيل الدخول أولاً');
-            showModal('loginModal');
-            return;
+            return showView('signIn');
+        }
+
+        if (viewName === 'owner' && !['admin', 'owner'].includes(role)) {
+            showToast('ليس لديك الصلاحية للوصول لهذه الصفحة', 'danger');
+            return showView('customer');
+        }
+
+        if (viewName === 'admin' && role !== 'admin') {
+            showToast('ليس لديك الصلاحية للوصول لهذه الصفحة', 'danger');
+            return showView('customer');
         }
 
         appData.currentView = viewName;
 
-        document.getElementById('customerView').classList.add('hidden');
-        document.getElementById('menuView').classList.add('hidden');
-        document.getElementById('ownerView').classList.add('hidden');
-        document.getElementById('adminView').classList.add('hidden');
+        const views = ['customerView', 'menuView', 'ownerView', 'adminView', 'signInView', 'signUpView'];
+        views.forEach(view => {
+            const el = document.getElementById(view);
+            if(el) el.classList.add('hidden');
+        });
 
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
@@ -1326,7 +1481,7 @@
 
     // Order Functions
     async function updateOrderStatus(orderId, newStatus) {
-        if (!appData.user) { return showModal('loginModal'); }
+        if (!appData.user) { return showView('signIn'); }
         const { error } = await supabaseClient
             .from('orders')
             .update({ status: newStatus })
@@ -1348,7 +1503,7 @@
 
     // Admin Functions
     function addRestaurant() {
-        if (!appData.user) { return showModal('loginModal'); }
+        if (!appData.user) { return showView('signIn'); }
         appData.editingRestaurant = null;
         document.getElementById('restaurantModalTitle').textContent = 'إضافة مطعم';
         document.getElementById('restaurantForm').reset();
@@ -1364,7 +1519,7 @@
     }
 
     function editRestaurant(restaurantId) {
-        if (!appData.user) { return showModal('loginModal'); }
+        if (!appData.user) { return showView('signIn'); }
         const restaurant = appData.restaurants.find(r => r.id === restaurantId);
         if (!restaurant) return;
 
@@ -1395,7 +1550,7 @@
     }
 
     async function deleteRestaurant(restaurantId) {
-        if (!appData.user) { return showModal('loginModal'); }
+        if (!appData.user) { return showView('signIn'); }
         const restaurant = appData.restaurants.find(r => r.id === restaurantId);
         if (!restaurant) return;
 
@@ -1424,7 +1579,7 @@
     }
 
     function addDish(restaurantId) {
-        if (!appData.user) { return showModal('loginModal'); }
+        if (!appData.user) { return showView('signIn'); }
         appData.editingDish = null;
         appData.selectedRestaurantForDish = restaurantId;
         document.getElementById('dishModalTitle').textContent = 'إضافة طبق';
@@ -1441,7 +1596,7 @@
     }
 
     function editDish(restaurantId, dishId) {
-        if (!appData.user) { return showModal('loginModal'); }
+        if (!appData.user) { return showView('signIn'); }
         const restaurant = appData.restaurants.find(r => r.id === restaurantId);
         if (!restaurant) return;
 
@@ -1474,7 +1629,7 @@
     }
 
     async function deleteDish(restaurantId, dishId) {
-        if (!appData.user) { return showModal('loginModal'); }
+        if (!appData.user) { return showView('signIn'); }
         const restaurant = appData.restaurants.find(r => r.id === restaurantId);
         if (!restaurant) return;
 
@@ -1523,14 +1678,14 @@
         }
     }
 
-    function updateNavUI(user) {
+    function updateNavUI(user, profile) {
         const ownerNav = document.getElementById('ownerNav');
         const adminNav = document.getElementById('adminNav');
         const authNavItem = document.getElementById('authNavItem');
 
         if (user) {
-            ownerNav.classList.remove('hidden');
-            adminNav.classList.remove('hidden');
+            ownerNav.classList.toggle('hidden', !['admin', 'owner'].includes(profile?.role));
+            adminNav.classList.toggle('hidden', profile?.role !== 'admin');
             authNavItem.innerHTML = `
                 <span class="text-lg mb-1">🚪</span>
                 <span class="text-xs">خروج</span>
@@ -1547,7 +1702,7 @@
                 <span class="text-xs">دخول</span>
             `;
             authNavItem.onclick = () => {
-                showModal('loginModal');
+                showView('signIn');
             };
         }
     }
@@ -1558,13 +1713,31 @@
         updateCartCount();
 
         // Auth state management
+        async function handleAuthChange(session) {
+            appData.user = session ? session.user : null;
+            if (appData.user) {
+                let { data, error } = await supabaseClient
+                    .from('profiles')
+                    .select(`role`)
+                    .eq('id', appData.user.id)
+                    .single();
+                if (error) {
+                    console.error("Error fetching profile:", error);
+                    appData.profile = null;
+                } else {
+                    appData.profile = data;
+                }
+            } else {
+                appData.profile = null;
+            }
+            updateNavUI(appData.user, appData.profile);
+        }
+
         const { data: { session } } = await supabaseClient.auth.getSession();
-        appData.user = session ? session.user : null;
-        updateNavUI(appData.user);
+        await handleAuthChange(session);
 
         supabaseClient.auth.onAuthStateChange((event, session) => {
-            appData.user = session ? session.user : null;
-            updateNavUI(appData.user);
+            handleAuthChange(session);
         });
 
         // Login form submission
@@ -1581,11 +1754,40 @@
                 loginError.classList.remove('hidden');
             } else {
                 loginError.classList.add('hidden');
-                hideModal('loginModal');
+                showView('customer');
                 document.getElementById('loginForm').reset();
             }
         });
-        document.getElementById('closeLoginModal').addEventListener('click', () => hideModal('loginModal'));
+
+        // Sign-up form submission
+        document.getElementById('signUpForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('signUpEmail').value;
+            const password = document.getElementById('signUpPassword').value;
+            const signUpError = document.getElementById('signUpError');
+
+            const { error } = await supabaseClient.auth.signUp({ email, password });
+
+            if (error) {
+                signUpError.textContent = error.message;
+                signUpError.classList.remove('hidden');
+            } else {
+                signUpError.classList.add('hidden');
+                showToast('تم إرسال رابط التأكيد إلى بريدك الإلكتروني.');
+                showView('signInView');
+                document.getElementById('signUpForm').reset();
+            }
+        });
+
+        // Auth view toggling
+        document.getElementById('showSignUpLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            showView('signUpView');
+        });
+        document.getElementById('showSignInLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            showView('signInView');
+        });
 
         // Bottom navigation
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -1666,24 +1868,32 @@
             e.preventDefault();
             if (!appData.user) {
                 showToast('يجب تسجيل الدخول لحفظ التغييرات', 'danger');
-                return showModal('loginModal');
+                return showView('signIn');
             }
+
+            const saveBtn = this.querySelector('button[type="submit"]');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'جاري الحفظ...';
 
             const imageFile = document.getElementById('restaurantImageInput').files[0];
             let imageUrl = appData.editingRestaurant ? appData.editingRestaurant.image_url : null;
 
             if (imageFile) {
+                saveBtn.textContent = 'جاري رفع الصورة...';
                 const filePath = `restaurant-images/${Date.now()}-${imageFile.name}`;
                 const { error: uploadError } = await supabaseClient.storage.from('app-images').upload(filePath, imageFile);
                 if(uploadError) {
                     console.error("Upload error", uploadError);
-                    showToast('خطأ في رفع الصورة', 'danger');
+                    showToast('خطأ في رفع الصورة: ' + uploadError.message, 'danger');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'حفظ';
                     return;
                 }
                 const { data: urlData } = supabaseClient.storage.from('app-images').getPublicUrl(filePath);
                 imageUrl = urlData.publicUrl;
             }
 
+            saveBtn.textContent = 'جاري حفظ البيانات...';
             const formData = {
                 name: document.getElementById('restaurantName').value,
                 logo: document.getElementById('restaurantLogo').value,
@@ -1704,9 +1914,12 @@
                 error = insertError;
             }
 
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'حفظ';
+
             if (error) {
                 console.error('Error saving restaurant:', error);
-                showToast('خطأ في حفظ المطعم.', 'danger');
+                showToast('خطأ في حفظ المطعم: ' + error.message, 'danger');
                 return;
             }
 
@@ -1724,27 +1937,40 @@
             e.preventDefault();
             if (!appData.user) {
                 showToast('يجب تسجيل الدخول لحفظ التغييرات', 'danger');
-                return showModal('loginModal');
+                return showView('signIn');
             }
 
+            const saveBtn = this.querySelector('button[type="submit"]');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'جاري الحفظ...';
+
             const restaurant = appData.restaurants.find(r => r.id == appData.selectedRestaurantForDish);
-            if (!restaurant) return;
+            if (!restaurant) {
+                showToast('الرجاء اختيار مطعم أولاً', 'danger');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'حفظ';
+                return;
+            }
 
             const imageFile = document.getElementById('dishImageInput').files[0];
             let photoUrl = appData.editingDish ? appData.editingDish.photo_url : null;
 
             if (imageFile) {
+                saveBtn.textContent = 'جاري رفع الصورة...';
                 const filePath = `dish-images/${Date.now()}-${imageFile.name}`;
                 const { error: uploadError } = await supabaseClient.storage.from('app-images').upload(filePath, imageFile);
                  if(uploadError) {
                     console.error("Upload error", uploadError);
-                    showToast('خطأ في رفع الصورة', 'danger');
+                    showToast('خطأ في رفع الصورة: ' + uploadError.message, 'danger');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'حفظ';
                     return;
                 }
                 const { data: urlData } = supabaseClient.storage.from('app-images').getPublicUrl(filePath);
                 photoUrl = urlData.publicUrl;
             }
 
+            saveBtn.textContent = 'جاري حفظ البيانات...';
             const formData = {
                 name: document.getElementById('dishName').value,
                 price: parseInt(document.getElementById('dishPrice').value),
@@ -1764,9 +1990,12 @@
                 error = insertError;
             }
 
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'حفظ';
+
             if (error) {
                 console.error('Error saving dish:', error);
-                showToast('خطأ في حفظ الطبق.', 'danger');
+                showToast('خطأ في حفظ الطبق: ' + error.message, 'danger');
                 return;
             }
 
